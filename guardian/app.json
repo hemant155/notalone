@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Guardian",
+    "slug": "guardian-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.guardian",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Emergency ke time tumhari location guardians ko bhejne ke liye.",
+        "NSContactsUsageDescription": "Guardians ko phone contacts se add karne ke liye."
+      }
+    },
+    "android": {
+      "package": "com.example.guardian",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_CONTACTS",
+        "SEND_SMS"
+      ]
+    },
+    "plugins": ["expo-location", "expo-contacts"]
+  }
+}
