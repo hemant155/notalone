@@ -1,13 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  SafeAreaView, View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform,
+  SafeAreaView, View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform, ActivityIndicator,
 } from 'react-native';
 import HomeScreen from './src/screens/HomeScreen';
 import GuardiansScreen from './src/screens/GuardiansScreen';
+import SetupScreen from './src/screens/SetupScreen';
 import { colors } from './src/theme';
+import { getProfile } from './src/lib/storage';
 
 export default function App() {
   const [tab, setTab] = useState('home');
+  const [profile, setProfile] = useState(undefined); // undefined = loading, null = not set up yet
+
+  useEffect(() => {
+    (async () => setProfile(await getProfile()))();
+  }, []);
+
+  if (profile === undefined) {
+    return (
+      <SafeAreaView style={[styles.root, styles.loadingRoot]}>
+        <ActivityIndicator color={colors.safe} size="large" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <SetupScreen onDone={setProfile} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.root}>
@@ -20,8 +43,8 @@ export default function App() {
 
       <View style={{ flex: 1 }}>
         {tab === 'home'
-          ? <HomeScreen onGoGuardians={() => setTab('guardians')} />
-          : <GuardiansScreen />}
+          ? <HomeScreen userId={profile.id} onGoGuardians={() => setTab('guardians')} />
+          : <GuardiansScreen userId={profile.id} />}
       </View>
 
       <View style={styles.tabbar}>
@@ -46,6 +69,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.screen,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
+  loadingRoot: { alignItems: 'center', justifyContent: 'center' },
   header: { backgroundColor: colors.safe, paddingHorizontal: 20, paddingVertical: 16 },
   brand: { color: '#fff', fontSize: 22, fontWeight: '800' },
   brandSub: { color: 'rgba(255,255,255,0.9)', fontSize: 13, marginTop: 2 },

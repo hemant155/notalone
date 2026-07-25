@@ -23,6 +23,6 @@
         "SEND_SMS"
       ]
     },
-    "plugins": ["expo-location", "expo-contacts"]
+    "plugins": ["expo-location", "expo-contacts", "expo-notifications"]
   }
 }

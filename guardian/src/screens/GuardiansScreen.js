@@ -1,41 +1,61 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert,
+  View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ActivityIndicator,
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import { colors } from '../theme';
-import { getGuardians, saveGuardians } from '../lib/storage';
+import { getGuardians, addGuardian, deleteGuardian } from '../lib/api';
 
-export default function GuardiansScreen() {
+export default function GuardiansScreen({ userId }) {
   const [guardians, setGuardians] = useState([]);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    (async () => setGuardians(await getGuardians()))();
-  }, []);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setGuardians(await getGuardians(userId));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
 
-  const persist = async (list) => {
-    setGuardians(list);
-    await saveGuardians(list);
-  };
+  useEffect(() => { load(); }, [load]);
 
   const add = async () => {
     if (!name.trim() || !phone.trim()) {
       Alert.alert('Adhoora', 'Naam aur phone dono daalo.');
       return;
     }
-    const next = [
-      ...guardians,
-      { id: Date.now().toString(), name: name.trim(), phone: phone.trim() },
-    ];
-    await persist(next);
-    setName('');
-    setPhone('');
+    setBusy(true);
+    try {
+      const created = await addGuardian(userId, { name: name.trim(), phone: phone.trim() });
+      setGuardians((list) => [...list, created]);
+      setName('');
+      setPhone('');
+    } catch (e) {
+      Alert.alert('Add nahi ho paaya', e.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const remove = async (id) => {
-    await persist(guardians.filter((g) => g.id !== id));
+    setBusy(true);
+    try {
+      await deleteGuardian(userId, id);
+      setGuardians((list) => list.filter((g) => g.id !== id));
+    } catch (e) {
+      Alert.alert('Hata nahi paaye', e.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const pickContact = async () => {
@@ -57,7 +77,7 @@ export default function GuardiansScreen() {
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>Trusted guardians</Text>
-      <Text style={styles.sub}>Emergency mein inhe tumhari live location SMS hogi.</Text>
+      <Text style={styles.sub}>Emergency mein inhe tumhari live location ka alert jaayega.</Text>
 
       <View style={styles.form}>
         <TextInput
@@ -66,6 +86,7 @@ export default function GuardiansScreen() {
           placeholderTextColor={colors.inkFaint}
           value={name}
           onChangeText={setName}
+          editable={!busy}
         />
         <TextInput
           style={styles.input}
@@ -74,36 +95,50 @@ export default function GuardiansScreen() {
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
+          editable={!busy}
         />
         <View style={styles.btnRow}>
-          <TouchableOpacity style={styles.pick} onPress={pickContact}>
+          <TouchableOpacity style={styles.pick} onPress={pickContact} disabled={busy}>
             <Text style={styles.pickText}>Contacts se</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.add} onPress={add}>
+          <TouchableOpacity style={styles.add} onPress={add} disabled={busy}>
             <Text style={styles.addText}>+ Add</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <FlatList
-        style={{ marginTop: 8 }}
-        data={guardians}
-        keyExtractor={(g) => g.id}
-        ListEmptyComponent={
-          <Text style={styles.empty}>Abhi koi guardian nahi. Upar se add karo.</Text>
-        }
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.rowName}>{item.name}</Text>
-              <Text style={styles.rowPhone}>{item.phone}</Text>
+      {loading && <ActivityIndicator style={{ marginTop: 20 }} color={colors.guard} />}
+
+      {!loading && error && (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={load}>
+            <Text style={styles.retry}>Dobara try karo</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {!loading && !error && (
+        <FlatList
+          style={{ marginTop: 8 }}
+          data={guardians}
+          keyExtractor={(g) => String(g.id)}
+          ListEmptyComponent={
+            <Text style={styles.empty}>Abhi koi guardian nahi. Upar se add karo.</Text>
+          }
+          renderItem={({ item }) => (
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowName}>{item.name}</Text>
+                <Text style={styles.rowPhone}>{item.phone}</Text>
+              </View>
+              <TouchableOpacity onPress={() => remove(item.id)} disabled={busy}>
+                <Text style={styles.remove}>Hatao</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => remove(item.id)}>
-              <Text style={styles.remove}>Hatao</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -131,6 +166,9 @@ const styles = StyleSheet.create({
   },
   addText: { color: '#fff', fontWeight: '700' },
   empty: { color: colors.inkFaint, textAlign: 'center', marginTop: 30 },
+  errorBox: { marginTop: 20, alignItems: 'center' },
+  errorText: { color: colors.alert, textAlign: 'center', fontSize: 13 },
+  retry: { color: colors.guard, fontWeight: '600', marginTop: 10 },
   row: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
     borderRadius: 14, padding: 14, marginTop: 10, borderWidth: 1, borderColor: colors.line,

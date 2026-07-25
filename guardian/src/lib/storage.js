@@ -1,21 +1,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const KEY = 'guardians_v1';
+const PROFILE_KEY = 'profile_v1';
 
-// Returns an array of { id, name, phone }
-export async function getGuardians() {
+// Local copy of { id, name, phone } for the registered user — the backend is the
+// source of truth, this just avoids re-registering (and re-asking for name/phone)
+// on every launch.
+export async function getProfile() {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
-    return raw ? JSON.parse(raw) : [];
+    const raw = await AsyncStorage.getItem(PROFILE_KEY);
+    return raw ? JSON.parse(raw) : null;
   } catch (e) {
-    return [];
+    return null;
   }
 }
 
-export async function saveGuardians(list) {
+export async function saveProfile(profile) {
   try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(list));
+    await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
   } catch (e) {
-    // storage failure is non-fatal for v0
+    // storage failure is non-fatal — profile still exists in memory for this session
   }
 }
