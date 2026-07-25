@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: guardian-backend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: guardian-backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      # Render assigns https://<name>.onrender.com — matches the service name above.
+      # If that name was already taken, Render will suffix it; update this value
+      # (and the app's API_BASE) to whatever URL actually gets assigned.
+      - key: BASE_URL
+        value: https://guardian-backend.onrender.com
+      - key: SMS_PROVIDER
+        value: mock
+      # PORT is injected automatically by Render — server.js already reads
+      # process.env.PORT, no need to set it here.
+
+    # Uncomment for SQLite to survive deploys/restarts (free instances have an
+    # ephemeral filesystem — without a disk, guardian.db resets on every deploy).
+    # Disks require a paid instance type.
+    # disk:
+    #   name: guardian-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
+    # then also add an env var: DB_FILE=/var/data/guardian.db
