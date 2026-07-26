@@ -13,7 +13,7 @@ services:
       # If that name was already taken, Render will suffix it; update this value
       # (and the app's API_BASE) to whatever URL actually gets assigned.
       - key: BASE_URL
-        value: https://guardian-backend.onrender.com
+        value: https://guardian-backend-gskl.onrender.com
       - key: SMS_PROVIDER
         value: mock
       # PORT is injected automatically by Render — server.js already reads
